@@ -1,0 +1,5 @@
+# Ignore Service Account Key
+ServiceAccountKey.json
+
+# Ignore Mac System Files
+.DS_store
