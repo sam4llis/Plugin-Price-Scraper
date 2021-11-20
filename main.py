@@ -1,4 +1,4 @@
-# import pandas as pd
+import pandas as pd
 from bs4 import BeautifulSoup
 import firebase_admin
 from firebase_admin import credentials
@@ -6,6 +6,7 @@ from firebase_admin import firestore
 import json
 import math
 import requests
+from apscheduler.schedulers.blocking import BlockingScheduler
 
 class PluginUAD:
 
@@ -80,7 +81,7 @@ def fetch_time(zone='Europe/London', fmt='%d-%m-%Y %H:%M'):
     tz = timezone(zone)
     return datetime.now(tz).strftime(fmt)
 
-def main():
+def write_data():
     url = 'https://www.uaudio.com/uad-plugins.html'
     d = fetch_data(url)
 
@@ -89,10 +90,22 @@ def main():
         item.scrape_data()
         data[item.name] = item.to_dict()
 
-    cred = credentials.Certificate('./ServiceAccountKey.json')
-    firebase_admin.initialize_app(cred)
+    # backup
+    df = pd.DataFrame.from_dict(data, orient='index')
+    df.to_csv(f'./data/{fetch_time()}.csv', encoding='utf-8')
+
+    if not firebase_admin._apps:
+        cred = credentials.Certificate('./ServiceAccountKey.json')
+        default_app = firebase_admin.initialize_app(cred)
     db = firestore.client()
-    db.collection('UAD').document(fetch_time()).set(data)
+    db.collection('Universal Audio').document(fetch_time()).set(data)
+    print(f'Data gathered at {fetch_time()}')
+
+def main():
+    scheduler = BlockingScheduler()
+    scheduler.add_job(write_data, trigger='cron', hour='*')
+    # scheduler.add_job(write_data, trigger='cron', minute='*')
+    scheduler.start()
 
 if __name__ == "__main__":
     main()
