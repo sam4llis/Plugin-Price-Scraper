@@ -1,107 +1,197 @@
-import pandas as pd
-from bs4 import BeautifulSoup
-import firebase_admin
-from firebase_admin import credentials
-from firebase_admin import firestore
-import json
-import math
-import requests
 import os
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+from datetime import datetime
 
-class PluginUAD:
+class Fetcher:
+    """
+    A class used to fetch all HTML data from a specified website.
 
-    def __init__(self, plugin):
-        self.plugin = plugin
+    Attributes
+    ----------
+    url : str
+        A web page's URL address.
 
-    def __repr__(self):
-        return json.dumps(self.to_dict(), indent=4, ensure_ascii=False)
+    Methods
+    -------
+    soup()
+        Returns HTML data from a URL request.
+    """
 
-    def __str__(self):
+    def __init__(self, url: str) -> None:
+        self.url = url
+        self._data = requests.get(self.url)
+
+    def __repr__(self) -> str:
+        fmt_hdr = lambda d: '\n'.join( f'{k}: {v}' for k, v in d.items() )
+
+        return f'''
+            \r---------- request ----------
+            \r{self._data.request.method} {self._data.request.url}
+
+            \r{fmt_hdr(self._data.request.headers)}
+
+            \r---------- response ----------
+            \r{self._data.status_code} {self._data.reason} {self._data.url}
+
+            \r{fmt_hdr(self._data.headers)}
+            '''
+
+    def __str__(self) -> str:
         return repr(self)
 
-    def scrape_data(self):
-        self.name = self._get_name()
-        self.url = self._get_url()
-        self.bundle = self._is_bundle()
-        self.sale = self._is_on_sale()
-        self.r_price = self._get_regular_price()
-        self.s_price = self._get_special_price()
-        self.saving = self._calc_saving()
+    @property
+    def soup(self):
+        return BeautifulSoup(self._data.text, 'html.parser')
 
-    def to_dict(self):
-        self.scrape_data()
+
+class PluginParser:
+    """
+    A parent class used to parse the fetched HTML data into meaningful content.
+
+    Attributes
+    ----------
+    data: str
+        The fetched HTML data for a specific plugin.
+
+    Methods
+    -------
+    query_data_one(d)
+        Returns a string of HTML data with a corresponding series of HTML-tag:
+        HTML class_ (key: value) pairs.
+
+    """
+
+    def __init__(self, data: str) -> None:
+        self.data = data
+
+    def query_data_one(self, d: dict):
+        q = self.data
+        for tag, class_ in d.items():
+            q = q.find(tag, class_) # type: ignore
+        return q.text.strip() if q != None else None
+
+    def query_data_all(self, d: dict):
+        tag, class_ = d.keys(), d.items()
+        return self.data.find_all(tag, class_=class_)
+
+    def get_date(self, format: str='%d-%m-%y %H:%M') -> str:
+        return datetime.now().strftime(format)
+
+
+class UADPlugin(PluginParser):
+    """
+    A sub-class from 'PluginParser' which is used to specifically scrape data
+    for Universal Audio plugins.
+
+    Attributes
+    ----------
+    data: The fetched HTML data for a specific plugin.
+
+    Methods
+    -------
+    to_dict()
+        Returns a dictionary of relevant plugin data.
+
+    name()
+        Returns the name of the plugin.
+
+    price()
+        Returns the price of the plugin.
+
+    price_to_int(p):
+        Converts the price of a plugin to integer (int) format.
+
+    on_sale()
+        Returns True if the plugin is on sale, else False.
+    """
+    def __init__(self, data: str) -> None:
+        super().__init__(data)
+
+    def __repr__(self) -> str:
+        return str(self.to_dict())
+
+    def __str__(self) -> str:
+        return repr(self)
+
+    def to_dict(self) -> dict:
         return {
-                    'URL': self.url,
-                    'Bundle': self.bundle,
-                    'Sale': self.sale,
-                    'Regular Price (£)': self.r_price,
-                    'Sale Price (£)': self.s_price,
-                    'Saving (%)': self.saving,
-               }
+                'name': self.name,
+                'price': self.price,
+                'on_sale': self.on_sale,
+                'datetime': self.get_date()
+                }
 
-    def _get_name(self):
-        return self.plugin['data-name']
+    @property
+    def name(self):
+        d = {'h2': 'product-name', 'a': None}
+        return self.query_data_one(d)
 
-    def _get_url(self):
-        return self.plugin.select_one('h2.product-name a')['href']
+    @property
+    def price(self) -> int:
+        d = {'p': 'special-price', 'span': 'price'} if self.on_sale \
+                else {'span': 'price'}
+        return self.price_to_int(self.query_data_one(d))
 
-    def _get_regular_price(self):
-        if self._is_on_sale():
-            price = self.plugin.select_one('p.old-price span.price').text.strip()[1:]
-        else:
-            price = self.plugin.select_one('span.regular-price').text.strip()[1:]
-        return int(float( price.replace(',', '') ))
+    def price_to_int(self, p: str) -> int:
+        return int( float(p[1:].replace(',', '')) )
 
-    def _get_special_price(self):
-        if self._is_on_sale():
-            price = self.plugin.select_one('p.special-price span.price').text.strip()[1:]
-            return int(float( price.replace(',', '') ))
+    @property
+    def on_sale(self):
+        d = {'p': 'special-price'}
+        return bool(self.query_data_one(d))
 
-    def _is_bundle(self):
-        if self._get_name() == 'UAD Custom 2 Bundle':
-            # fixes categorisation error on uaudio.com.
-            return True
-        return 'category_ids-12' in self.plugin['class']
+    def catogory(self):
+        # Only needs to be scraped once!
+        pass
 
-    def _is_on_sale(self):
-        return bool(self.plugin.find('p', class_='special-price'))
+    def url(self):
+        # Only needs to be scraped once
+        pass
 
-    def _calc_saving(self):
-        return math.floor( (1 - self.s_price / self.r_price) * 100 ) if self._is_on_sale() else 0
+class UADCoupon:
+    pass
 
-def fetch_data(url):
-    html = requests.get(url).text
-    soup = BeautifulSoup(html, 'lxml')
-    data = soup.find_all('li', class_='item')
-    return [PluginUAD(entry) for entry in data]
+class CouponParser:
+    pass
 
-def fetch_time(zone='Europe/London', fmt='%d-%m-%Y %H:%M'):
-    from datetime import datetime
-    from pytz import timezone
-    tz = timezone(zone)
-    return datetime.now(tz).strftime(fmt)
+class FireStore:
+    pass
+
+class FileUtil:
+
+    def __init__(self, plugin, directory) -> None:
+        self.plugin = plugin # UADPlugin class object
+        self.directory = directory
+        self.filepath = os.path.join(self.directory, self.filename)
+        self.directory_exists = os.path.exists(self.directory)
+        self.file_exists = os.path.exists(self.filepath)
+
+        if not self.directory_exists:
+            os.makedirs(self.directory)
+
+    def write_to_csv(self):
+        """if file exists, append to it, else create it"""
+        self.df = pd.DataFrame.from_dict([self.plugin.to_dict()])
+        self.df.to_csv(self.filepath, mode='a',
+                header= not self.file_exists, index=False)
+
+    @property
+    def filename(self):
+        s = self.plugin.name.encode('ascii', errors='ignore').decode() + '.csv'
+        return s.replace("'", '').replace(' & ', '_').replace('/', '_').replace(' ', '_').lower()
+
 
 def main():
-    dir_path = os.path.dirname(os.path.abspath(__file__))
-    url = 'https://www.uaudio.com/uad-plugins.html'
-    d = fetch_data(url)
+    url = 'https://www.uaudio.com/uad-plugins/all-plugins.html'
+    data = Fetcher(url)
+    plugins = PluginParser(data.soup).query_data_all( {'li': 'item'} )
 
-    data = {}
-    for item in d:
-        item.scrape_data()
-        data[item.name] = item.to_dict()
-
-    if not firebase_admin._apps:
-        cred = credentials.Certificate(os.path.join(dir_path,'ServiceAccountKey.json'))
-        default_app = firebase_admin.initialize_app(cred)
-    db = firestore.client()
-    db.collection('Universal Audio').document(fetch_time()).set(data)
-    t = fetch_time()
-    print(f'Data gathered at {t}')
-
-    # create local backup
-    df = pd.DataFrame.from_dict(data, orient='index')
-    df.to_csv(os.path.join(dir_path, 'data', f'{t}.csv'), encoding='utf-8')
+    for plug in plugins:
+        p = UADPlugin(plug)
+        f = FileUtil(p, directory='data/UAD')
+        f.write_to_csv()
 
 if __name__ == "__main__":
     main()

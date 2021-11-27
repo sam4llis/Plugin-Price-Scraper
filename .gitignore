@@ -7,5 +7,10 @@ ServiceAccountKey.json
 # Ignore Cron Log Files
 cron.log
 
-# Ignore Local Backup Files
+# Ignore Data Files
 data/
+
+# Ignore Personal Backup Files
+bck/
+
+
