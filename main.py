@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 from datetime import datetime
 
+
 class Fetcher:
     """
     A class used to fetch all HTML data from a specified website.
@@ -24,7 +25,8 @@ class Fetcher:
         self._data = requests.get(self.url)
 
     def __repr__(self) -> str:
-        fmt_hdr = lambda d: '\n'.join( f'{k}: {v}' for k, v in d.items() )
+
+        fmt_hdr = lambda d: '\n'.join(f'{k}: {v}' for k, v in d.items())
 
         return f'''
             \r---------- request ----------
@@ -43,10 +45,11 @@ class Fetcher:
 
     @property
     def soup(self):
+
         return BeautifulSoup(self._data.text, 'html.parser')
 
 
-class PluginParser:
+class Parser:
     """
     A parent class used to parse the fetched HTML data into meaningful content.
 
@@ -64,26 +67,26 @@ class PluginParser:
     """
 
     def __init__(self, data: str) -> None:
-        self.data = data
+        self.data: str = data
 
     def query_data_one(self, d: dict):
         q = self.data
         for tag, class_ in d.items():
-            q = q.find(tag, class_) # type: ignore
+            q = q.find(tag, class_)
         return q.text.strip() if q != None else None
 
     def query_data_all(self, d: dict):
         tag, class_ = d.keys(), d.items()
         return self.data.find_all(tag, class_=class_)
 
-    def get_date(self, format: str='%d-%m-%y %H:%M') -> str:
+    def get_date(self, format: str = '%d-%m-%y %H:%M') -> str:
         return datetime.now().strftime(format)
 
 
-class UADPlugin(PluginParser):
+class UADPlugin(Parser):
     """
     A sub-class from 'PluginParser' which is used to specifically scrape data
-    for Universal Audio plugins.
+    for a Universal Audio plugin.
 
     Attributes
     ----------
@@ -106,6 +109,7 @@ class UADPlugin(PluginParser):
     on_sale()
         Returns True if the plugin is on sale, else False.
     """
+
     def __init__(self, data: str) -> None:
         super().__init__(data)
 
@@ -120,7 +124,10 @@ class UADPlugin(PluginParser):
                 'name': self.name,
                 'price': self.price,
                 'on_sale': self.on_sale,
-                'datetime': self.get_date()
+                'datetime': TIME,
+                'brand': '',
+                'category': '',
+                'url': '',
                 }
 
     @property
@@ -135,35 +142,56 @@ class UADPlugin(PluginParser):
         return self.price_to_int(self.query_data_one(d))
 
     def price_to_int(self, p: str) -> int:
-        return int( float(p[1:].replace(',', '')) )
+        return int(float(p[1:].replace(',', '')))
 
     @property
     def on_sale(self):
         d = {'p': 'special-price'}
         return bool(self.query_data_one(d))
 
-    def catogory(self):
+    @property
+    def brand(self):
+        brand_id = ''.join(
+            v for v in self.data['class'] if v.startswith('brand'))
+        print(brand_id)
+        return self._translate_brand_id(brand_id)
+
+    def _translate_brand_id(self, brand_id):
+        pass
+
+    @property
+    def category(self):
+        pass
+        # classes = [v['class'] for v in self.data.find_all(
+        #     'li', 'category_ids-28')]
+        # class_=lambda v: v and value.startswith('category'))]
+        # classes = [v for v in self.data['class'] if v.startswith('category')]
+
+    def url(self):  # FIXME TODO
         # Only needs to be scraped once!
         pass
 
-    def url(self):
-        # Only needs to be scraped once
-        pass
 
-class UADCoupon:
-    pass
+class UADCoupon(Parser):
+
+    def __init__(self, data: str) -> None:
+        super().__init__(data)
+
 
 class CouponParser:
     pass
 
+
 class FireStore:
     pass
+
 
 class FileUtil:
 
     def __init__(self, plugin, directory) -> None:
-        self.plugin = plugin # UADPlugin class object
-        self.directory = directory
+        self.directory = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), directory)
+        self.plugin = plugin  # UADPlugin class object
         self.filepath = os.path.join(self.directory, self.filename)
         self.directory_exists = os.path.exists(self.directory)
         self.file_exists = os.path.exists(self.filepath)
@@ -174,24 +202,41 @@ class FileUtil:
     def write_to_csv(self):
         """if file exists, append to it, else create it"""
         self.df = pd.DataFrame.from_dict([self.plugin.to_dict()])
-        self.df.to_csv(self.filepath, mode='a',
-                header= not self.file_exists, index=False)
+        self.df.to_csv(
+            self.filepath, mode='a', header=not self.file_exists, index=False)
 
     @property
     def filename(self):
         s = self.plugin.name.encode('ascii', errors='ignore').decode() + '.csv'
-        return s.replace("'", '').replace(' & ', '_').replace('/', '_').replace(' ', '_').lower()
+        return s.replace("'", '').replace(
+            ' & ', '_').replace('/', '_').replace(' ', '_').lower()
+
+
+def get_date(format='%d-%m-%y %H:%M'):
+    return datetime.now().strftime(format)
 
 
 def main():
+    global TIME
+    TIME = get_date()
+
     url = 'https://www.uaudio.com/uad-plugins/all-plugins.html'
     data = Fetcher(url)
-    plugins = PluginParser(data.soup).query_data_all( {'li': 'item'} )
+    plugins = Parser(data.soup).query_data_all({'li': 'item'})
+    # brand_id = Parser(data.soup).query_data_one( {
+    #     'h3': 'dropdown--brand'})
+    # print(brand_id)
+    # x: str = data.soup.find('aside').prettify()
+    # print(x)
+    # input()
 
     for plug in plugins:
         p = UADPlugin(plug)
         f = FileUtil(p, directory='data/UAD')
         f.write_to_csv()
+
+    print(f'Successfully Scraped Plugin Data at: {TIME}')
+
 
 if __name__ == "__main__":
     main()
