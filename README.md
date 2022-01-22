@@ -4,4 +4,4 @@ A web-scraper designed to extract pricing information from audio plug-in compani
 
 # UPDATE: 21/01/2022
 
-I have now gathered approximately three months of data (November 2021 - January 2022) and the data shows some promising results as to how Universal Audio plug-ins fluctuate in price. At the moment, I am learning the [Angular](https://angular.io) framework in the hopes of building a website displaying this information for the audio community. This will be a work-in-process throughout 2022.
+I have now gathered approximately three months of data (November 2021 - January 2022) and the data shows some promising results as to how Universal Audio plug-ins fluctuate in price. At the moment, I am learning the [Angular](https://angular.io) framework in the hopes of building a website displaying this information for the audio community. This will be a work-in-progress throughout 2022.
