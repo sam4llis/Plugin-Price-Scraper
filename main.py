@@ -45,7 +45,6 @@ class Fetcher:
 
     @property
     def soup(self):
-
         return BeautifulSoup(self._data.text, 'html.parser')
 
 
@@ -73,7 +72,7 @@ class Parser:
         q = self.data
         for tag, class_ in d.items():
             q = q.find(tag, class_)
-        return q.text.strip() if q != None else None
+        return q.text.strip() if q is not None else None
 
     def query_data_all(self, d: dict):
         tag, class_ = d.keys(), d.items()
@@ -161,13 +160,13 @@ class UADPlugin(Parser):
 
     @property
     def category(self):
-        pass
         # classes = [v['class'] for v in self.data.find_all(
         #     'li', 'category_ids-28')]
         # class_=lambda v: v and value.startswith('category'))]
         # classes = [v for v in self.data['class'] if v.startswith('category')]
+        pass
 
-    def url(self):  # FIXME TODO
+    def url(self):  # TODO(sam3llis): complete this function
         # Only needs to be scraped once!
         pass
 
