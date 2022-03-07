@@ -4,8 +4,9 @@ ServiceAccountKey.json
 # Ignore Mac System Files
 .DS_store
 
-# Ignore Cron Log Files
-cron.log
+# Ignore Cron (Shell and Log Files)
+run.sh
+run.log
 
 # Ignore Data Files
 data/
@@ -13,4 +14,5 @@ data/
 # Ignore Personal Backup Files
 bck/
 
-
+# Ignore Python Virtual Environment
+venv/
