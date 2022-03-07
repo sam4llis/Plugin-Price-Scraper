@@ -22,11 +22,11 @@ class Fetcher:
         Returns HTML data from a URL request.
     """
 
-    def __init__(self, url: str) -> None:
+    def __init__(self, url):
         self.url = url
         self._data = requests.get(self.url)
 
-    def __repr__(self) -> str:
+    def __repr__(self):
 
         fmt_hdr = lambda d: '\n'.join(f'{k}: {v}' for k, v in d.items())
 
@@ -42,7 +42,7 @@ class Fetcher:
             \r{fmt_hdr(self._data.headers)}
             '''
 
-    def __str__(self) -> str:
+    def __str__(self):
         return repr(self)
 
     @property
@@ -67,20 +67,20 @@ class Parser:
 
     """
 
-    def __init__(self, data: str) -> None:
-        self.data: str = data
+    def __init__(self, data):
+        self.data = data
 
-    def query_data_one(self, d: dict):
+    def query_data_one(self, d):
         q = self.data
         for tag, class_ in d.items():
             q = q.find(tag, class_)
         return q.text.strip() if q is not None else None
 
-    def query_data_all(self, d: dict):
+    def query_data_all(self, d):
         tag, class_ = d.keys(), d.items()
         return self.data.find_all(tag, class_=class_)
 
-    def get_date(self, format: str = '%d-%m-%y %H:%M') -> str:
+    def get_date(self, format='%d-%m-%y %H:%M'):
         return datetime.now().strftime(format)
 
 
@@ -111,16 +111,16 @@ class UADPlugin(Parser):
         Returns True if the plugin is on sale, else False.
     """
 
-    def __init__(self, data: str) -> None:
+    def __init__(self, data):
         super().__init__(data)
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return str(self.to_dict())
 
-    def __str__(self) -> str:
+    def __str__(self):
         return repr(self)
 
-    def to_dict(self) -> dict:
+    def to_dict(self):
         return {
                 'name': self.name,
                 'price': self.price,
@@ -137,12 +137,12 @@ class UADPlugin(Parser):
         return self.query_data_one(d)
 
     @property
-    def price(self) -> int:
+    def price(self):
         d = {'p': 'special-price', 'span': 'price'} if self.on_sale \
                 else {'span': 'price'}
         return self.price_to_int(self.query_data_one(d))
 
-    def price_to_int(self, p: str) -> int:
+    def price_to_int(self, p):
         return int(float(p[1:].replace(',', '')))
 
     @property
@@ -175,7 +175,7 @@ class UADPlugin(Parser):
 
 class UADCoupon(Parser):
 
-    def __init__(self, data: str) -> None:
+    def __init__(self, data):
         super().__init__(data)
 
 
@@ -189,7 +189,7 @@ class FireStore:
 
 class FileUtil:
 
-    def __init__(self, plugin, directory) -> None:
+    def __init__(self, plugin, directory):
         self.directory = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), directory)
         self.plugin = plugin  # UADPlugin class object
