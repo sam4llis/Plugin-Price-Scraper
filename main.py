@@ -213,7 +213,7 @@ class FileUtil:
             ' & ', '_').replace('/', '_').replace(' ', '_').lower()
 
 
-def get_date(format='%d-%m-%y %H:%M'):
+def get_date(format='%d-%m-%y'):
     return datetime.now().strftime(format)
 
 
