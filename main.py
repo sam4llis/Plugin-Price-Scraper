@@ -124,11 +124,7 @@ class UADPlugin(Parser):
         return {
                 'name': self.name,
                 'price': self.price,
-                'on_sale': self.on_sale,
-                'datetime': TIME,
-                'brand': '',
-                'category': '',
-                'url': '',
+                'date': TIME,
                 }
 
     @property
