@@ -4,8 +4,6 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
-F_DIR = os.path.join(os.getcwd(), 'data', 'UAD')
-
 
 def plot_data(fpath):
     df = pd.read_csv(fpath, parse_dates=['date'], dayfirst=True)
@@ -19,6 +17,7 @@ def plot_data(fpath):
 
 
 def main():
+    F_DIR = os.path.join('~', 'Desktop', 'Plugin-Price-Scraper', 'data', 'UAD')
     fpath = os.path.join(F_DIR, 'api_500_series_eq_collection.csv')
     plot_data(fpath)
     return 0
