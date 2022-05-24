@@ -28,7 +28,7 @@ class Fetcher:
 
     def __repr__(self):
 
-        fmt_hdr = lambda d: '\n'.join(f'{k}: {v}' for k, v in d.items())
+        def fmt_hdr(d): return '\n'.join(f'{k}: {v}' for k, v in d.items())
 
         return f'''
             \r---------- request ----------
@@ -122,10 +122,10 @@ class UADPlugin(Parser):
 
     def to_dict(self):
         return {
-                'name': self.name,
-                'price': self.price,
-                'date': TIME,
-                }
+            'name': self.name,
+            'price': self.price,
+            'date': TIME,
+        }
 
     @property
     def name(self):
@@ -135,7 +135,7 @@ class UADPlugin(Parser):
     @property
     def price(self):
         d = {'p': 'special-price', 'span': 'price'} if self.on_sale \
-                else {'span': 'price'}
+            else {'span': 'price'}
         return self.price_to_int(self.query_data_one(d))
 
     def price_to_int(self, p):
