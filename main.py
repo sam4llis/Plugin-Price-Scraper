@@ -25,6 +25,7 @@ class Fetcher:
     def __init__(self, url: str) -> None:
         self.url: str = url
         self._data: requests.Response = requests.get(self.url)
+        print('   INFO: Initialised Fetcher object')
 
     def __repr__(self) -> str:
 
@@ -78,6 +79,7 @@ class Parser:
 
     def query_data_all(self, d):
         tag, class_ = d.keys(), d.items()
+        print(f'   INFO: Querying data with tag(s): {tag} and class: {class_}')
         return self.data.find_all(tag, class_=class_)
 
     def get_date(self, format='%d-%m-%y %H:%M'):
@@ -159,20 +161,6 @@ class UADPlugin(Parser):
         pass
 
 
-class UADCoupon(Parser):
-
-    def __init__(self, data):
-        super().__init__(data)
-
-
-class CouponParser:
-    pass
-
-
-class FireStore:
-    pass
-
-
 class FileUtil:
 
     def __init__(self, plugin, directory):
@@ -206,17 +194,29 @@ def get_date(format='%d-%m-%y'):
 def main():
     global TIME
     TIME = get_date()
+    TARGET_DIR = 'data/UAD'
 
     url = 'https://www.uaudio.com/uad-plugins/all-plugins.html'
-    data = Fetcher(url)
-    plugins = Parser(data.soup).query_data_all({'li': 'item'})
+    print(f'   INFO: Attempting to fetch data from {url}')
+    try:
+        data = Fetcher(url)
+        plugins = Parser(data.soup).query_data_all({'li': 'item'})
+    except BaseException:
+        print(f'  ERROR: Failed to fetch data from {url}')
+        raise
 
-    for plug in plugins:
-        p = UADPlugin(plug)
-        f = FileUtil(p, directory='data/UAD')
-        f.write_to_csv()
+    try:
+        print('   INFO: Attempting to write data to files')
+        for plug in plugins:
+            p = UADPlugin(plug)
+            f = FileUtil(p, directory=TARGET_DIR)
+            f.write_to_csv()
+        print(f'   INFO: data wrote to {TARGET_DIR}')
+    except BaseException:
+        print(f'  ERROR: failed to write data to {TARGET_DIR}')
+        raise
 
-    print(f'Successfully Scraped Plugin Data at: {TIME}')
+    print(f'SUCCESS: Scraped plugin data at: {TIME}')
 
 
 if __name__ == "__main__":
