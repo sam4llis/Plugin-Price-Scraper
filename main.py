@@ -22,11 +22,11 @@ class Fetcher:
         Returns HTML data from a URL request.
     """
 
-    def __init__(self, url):
-        self.url = url
-        self._data = requests.get(self.url)
+    def __init__(self, url: str) -> None:
+        self.url: str = url
+        self._data: requests.Response = requests.get(self.url)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
 
         def fmt_hdr(d): return '\n'.join(f'{k}: {v}' for k, v in d.items())
 
@@ -46,7 +46,7 @@ class Fetcher:
         return repr(self)
 
     @property
-    def soup(self):
+    def soup(self) -> BeautifulSoup:
         return BeautifulSoup(self._data.text, 'html.parser')
 
 
@@ -67,13 +67,13 @@ class Parser:
 
     """
 
-    def __init__(self, data):
-        self.data = data
+    def __init__(self, data: BeautifulSoup) -> None:
+        self.data: BeautifulSoup = data
 
-    def query_data_one(self, d):
+    def query_data_one(self, d: dict[str, str]):
         q = self.data
         for tag, class_ in d.items():
-            q = q.find(tag, class_)
+            q = self.data.find(tag, class_)
         return q.text.strip() if q is not None else None
 
     def query_data_all(self, d):
@@ -147,16 +147,6 @@ class UADPlugin(Parser):
         return bool(self.query_data_one(d))
 
     @property
-    def brand(self):
-        brand_id = ''.join(
-            v for v in self.data['class'] if v.startswith('brand'))
-        print(brand_id)
-        return self._translate_brand_id(brand_id)
-
-    def _translate_brand_id(self, brand_id):
-        pass
-
-    @property
     def category(self):
         # classes = [v['class'] for v in self.data.find_all(
         #     'li', 'category_ids-28')]
@@ -220,12 +210,6 @@ def main():
     url = 'https://www.uaudio.com/uad-plugins/all-plugins.html'
     data = Fetcher(url)
     plugins = Parser(data.soup).query_data_all({'li': 'item'})
-    # brand_id = Parser(data.soup).query_data_one( {
-    #     'h3': 'dropdown--brand'})
-    # print(brand_id)
-    # x: str = data.soup.find('aside').prettify()
-    # print(x)
-    # input()
 
     for plug in plugins:
         p = UADPlugin(plug)
