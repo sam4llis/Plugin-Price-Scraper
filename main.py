@@ -79,7 +79,7 @@ class Parser:
 
     def query_data_all(self, d):
         tag, class_ = d.keys(), d.items()
-        print(f'   INFO: Querying data with tag(s): {tag} and class: {class_}')
+        # print(f'   INFO: Querying data with tag(s): {tag} and class: {class_}')
         return self.data.find_all(tag, class_=class_)
 
     def get_date(self, format='%d-%m-%y %H:%M'):
@@ -138,7 +138,8 @@ class UADPlugin(Parser):
     def price(self):
         d = {'p': 'special-price', 'span': 'price'} if self.on_sale \
             else {'span': 'price'}
-        return self.price_to_int(self.query_data_one(d))
+        # return self.price_to_int(self.query_data_one(d))
+        return self.price_to_int(self.query_data_all(d)[-1].text.strip())
 
     def price_to_int(self, p):
         return int(float(p[1:].replace(',', '')))
