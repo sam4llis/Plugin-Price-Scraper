@@ -127,6 +127,7 @@ class UADPlugin(Parser):
             'date': TIME,
             'name': self.name,
             'price': self.price,
+            'on_sale': self.on_sale,
         }
 
     @property
