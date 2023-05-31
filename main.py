@@ -28,10 +28,10 @@ class Fetcher:
         print('   INFO: Initialised Fetcher object')
 
     def __repr__(self) -> str:
+        def fmt_hdr(d):
+            return '\n'.join(f'{k}: {v}' for k, v in d.items())
 
-        def fmt_hdr(d): return '\n'.join(f'{k}: {v}' for k, v in d.items())
-
-        return f'''
+        return f"""
             \r---------- request ----------
             \r{self._data.request.method} {self._data.request.url}
 
@@ -41,7 +41,7 @@ class Fetcher:
             \r{self._data.status_code} {self._data.reason} {self._data.url}
 
             \r{fmt_hdr(self._data.headers)}
-            '''
+            """
 
     def __str__(self):
         return repr(self)
@@ -136,8 +136,11 @@ class UADPlugin(Parser):
 
     @property
     def price(self):
-        d = {'p': 'special-price', 'span': 'price'} if self.on_sale \
+        d = (
+            {'p': 'special-price', 'span': 'price'}
+            if self.on_sale
             else {'span': 'price'}
+        )
         # return self.price_to_int(self.query_data_one(d))
         return self.price_to_int(self.query_data_all(d)[-1].text.strip())
 
@@ -163,10 +166,10 @@ class UADPlugin(Parser):
 
 
 class FileUtil:
-
     def __init__(self, plugin, directory):
         self.directory = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), directory)
+            os.path.dirname(os.path.abspath(__file__)), directory
+        )
         self.plugin = plugin  # UADPlugin class object
         self.filepath = os.path.join(self.directory, self.filename)
         self.directory_exists = os.path.exists(self.directory)
@@ -179,13 +182,19 @@ class FileUtil:
         """if file exists, append to it, else create it"""
         self.df = pd.DataFrame.from_dict([self.plugin.to_dict()])
         self.df.to_csv(
-            self.filepath, mode='a', header=not self.file_exists, index=False)
+            self.filepath, mode='a', header=not self.file_exists, index=False
+        )
 
     @property
     def filename(self):
         s = self.plugin.name.encode('ascii', errors='ignore').decode() + '.csv'
-        return s.replace("'", '').replace(
-            ' & ', '_').replace('/', '_').replace(' ', '_').lower()
+        return (
+            s.replace("'", '')
+            .replace(' & ', '_')
+            .replace('/', '_')
+            .replace(' ', '_')
+            .lower()
+        )
 
 
 def get_date(format='%Y-%m-%d'):
@@ -220,5 +229,5 @@ def main():
     print(f'SUCCESS: Scraped plugin data at: {TIME}')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
