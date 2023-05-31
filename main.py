@@ -124,9 +124,9 @@ class UADPlugin(Parser):
 
     def to_dict(self):
         return {
+            'date': TIME,
             'name': self.name,
             'price': self.price,
-            'date': TIME,
         }
 
     @property
@@ -188,7 +188,7 @@ class FileUtil:
             ' & ', '_').replace('/', '_').replace(' ', '_').lower()
 
 
-def get_date(format='%d-%m-%y'):
+def get_date(format='%Y-%m-%d'):
     return datetime.now().strftime(format)
 
 
