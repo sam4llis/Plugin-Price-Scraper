@@ -16,3 +16,6 @@ bck/
 
 # Ignore Python Virtual Environment
 venv/
+
+# Ignore Firebase Credentials.
+.firebase.json

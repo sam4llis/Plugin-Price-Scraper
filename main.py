@@ -2,10 +2,13 @@
 
 import os
 import requests
+import pathlib
 from bs4 import BeautifulSoup
 import pandas as pd
 from datetime import datetime
 
+import firebase_admin
+from firebase_admin import firestore
 
 class Fetcher:
     """
@@ -207,6 +210,10 @@ def main():
     TIME = get_date()
     TARGET_DIR = 'data/UAD'
 
+    credentials = firebase_admin.credentials.Certificate('.firebase.json')
+    app = firebase_admin.initialize_app(credentials)
+    db = firestore.client()
+
     url = 'https://www.uaudio.com/uad-plugins/all-plugins.html'
     print(f'   INFO: Attempting to fetch data from {url}')
     try:
@@ -222,6 +229,14 @@ def main():
             p = UADPlugin(plug)
             f = FileUtil(p, directory=TARGET_DIR)
             f.write_to_csv()
+
+            name = p.name
+            d = p.to_dict()
+            date = datetime.strptime(d['date'], '%Y-%m-%d').isoformat(timespec='seconds')
+
+            doc_ref = db.collection('plugin').document(name)
+            tmp = {'price': d['price'], 'version': 1, 'createdAt': datetime.now().isoformat(timespec='seconds'), 'isOnSale': d['on_sale']}
+            doc_ref.collection('price').document(date).set(tmp)
         print(f'   INFO: data wrote to {TARGET_DIR}')
     except BaseException:
         print(f'  ERROR: failed to write data to {TARGET_DIR}')
