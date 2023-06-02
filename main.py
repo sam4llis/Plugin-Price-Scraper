@@ -230,11 +230,12 @@ def main():
             f = FileUtil(p, directory=TARGET_DIR)
             f.write_to_csv()
 
+            print(f'writing {f.filepath}')
             name = p.name
             d = p.to_dict()
             date = datetime.strptime(d['date'], '%Y-%m-%d').isoformat(timespec='seconds')
 
-            doc_ref = db.collection('plugin').document(name)
+            doc_ref = db.collection('plugin').document(pathlib.Path(f.filepath).stem)
             tmp = {'price': d['price'], 'version': 1, 'createdAt': datetime.now().isoformat(timespec='seconds'), 'isOnSale': d['on_sale']}
             doc_ref.collection('price').document(date).set(tmp)
         print(f'   INFO: data wrote to {TARGET_DIR}')
